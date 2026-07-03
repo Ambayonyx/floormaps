@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>YAML Page Viewer</title>
+    <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+    <style>
+        :root {
+            color-scheme: light;
+            --md-sys-primary: #6750a4;
+            --md-sys-on-primary: #ffffff;
+            --md-sys-primary-container: #eaddff;
+            --md-sys-on-primary-container: #21005d;
+            --md-sys-secondary: #625b71;
+            --md-sys-on-secondary: #ffffff;
+            --md-sys-surface: #fffbfe;
+            --md-sys-surface-variant: #e7def8;
+            --md-sys-background: #fffbfe;
+            --md-sys-on-background: #1c1b1f;
+            --md-sys-outline: #7f728a;
+            --md-sys-shadow: 0px 20px 40px rgba(99, 92, 116, 0.14);
+            --md-sys-radius: 24px;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            min-height: 100%;
+            height: 100%;
+            background: radial-gradient(circle at top left, rgba(103, 80, 164, 0.12), transparent 28%),
+                        linear-gradient(180deg, #fffbfe 0%, #f5eefc 100%);
+            color: var(--md-sys-on-background);
+            font-family: "Roboto", "Segoe UI", Arial, sans-serif;
+            line-height: 1.5;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            min-height: 100vh;
+        }
+
+        #buttonRow,
+        #topHeader,
+        #viewerWrapper {
+            border-radius: var(--md-sys-radius);
+            background: var(--md-sys-surface);
+            box-shadow: var(--md-sys-shadow);
+        }
+
+        #buttonRow {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 18px 20px;
+            margin-bottom: 12px;
+        }
+
+        #topHeader {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 18px 20px;
+            margin-bottom: 12px;
+        }
+
+        .selector-panel {
+            display: inline-flex;
+            flex: 0 1 auto;
+            white-space: nowrap;
+        }
+
+        #topHeader select,
+        #chooseYaml {
+            min-width: 180px;
+            padding: 12px 16px;
+            border-radius: 999px;
+            border: 1px solid transparent;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+        }
+
+        #topHeader select {
+            background: #ffffff;
+            color: var(--md-sys-on-background);
+            border-color: rgba(103, 80, 164, 0.16);
+            box-shadow: inset 0 1px 2px rgba(16, 24, 40, 0.08);
+        }
+
+        #topHeader select:focus,
+        #topHeader select:hover {
+            border-color: var(--md-sys-primary);
+            box-shadow: 0 0 0 4px rgba(103, 80, 164, 0.12);
+            outline: none;
+        }
+
+        #chooseYaml {
+            appearance: none;
+            border: none;
+            color: var(--md-sys-on-primary);
+            background: linear-gradient(135deg, var(--md-sys-primary), var(--md-sys-primary-container));
+            box-shadow: 0 14px 30px rgba(103, 80, 164, 0.18);
+        }
+
+        #chooseYaml:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 16px 36px rgba(103, 80, 164, 0.22);
+        }
+
+        #chooseYaml:focus-visible {
+            outline: 3px solid rgba(101, 80, 164, 0.32);
+            outline-offset: 2px;
+        }
+
+        #viewerWrapper {
+            width: 100%;
+            min-height: 360px;
+            margin-top: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            padding: 20px;
+            flex: 1 1 auto;
+        }
+
+        #viewer {
+            width: 100%;
+            height: auto;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 20px;
+            background: #ffffff;
+            box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+        }
+
+        #instruction {
+            margin-top: 16px;
+            color: #42281e;
+            font-size: 0.95rem;
+            background: #ffebe9;
+            border: 1px solid #f4c2bb;
+            border-radius: 18px;
+            padding: 14px 18px;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.04);
+        }
+
+        code {
+            padding: 2px 6px;
+            border-radius: 8px;
+            background: rgba(103, 80, 164, 0.08);
+        }
+
+        @media (max-width: 720px) {
+            body {
+                padding: 16px;
+            }
+            #buttonRow,
+            #topHeader,
+            #viewerWrapper {
+                padding: 16px;
+            }
+            #topHeader select,
+            #chooseYaml {
+                min-width: 140px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div id="buttonRow">
+    <button id="chooseYaml">Load pages.yaml</button>
+    <input id="yamlFile" type="file" accept=".yaml,.yml" style="display:none">
+</div>
+
+<div id="topHeader">
+    <div class="selector-panel">
+        <select id="buildingSelector"></select>
+    </div>
+
+    <div class="selector-panel">
+        <select id="floorSelector"></select>
+    </div>
+</div>
+
+<div id="viewerWrapper">
+    <img id="viewer" alt="Floor map" src="">
+</div>
+
+<p id="instruction">If you opened this page from the filesystem, click the button and choose <code>pages.yaml</code> from the same folder.</p>
+
+<script>
+    const buildingSelector = document.getElementById("buildingSelector");
+    const floorSelector = document.getElementById("floorSelector");
+    const yamlFileInput = document.getElementById("yamlFile");
+    const chooseYamlButton = document.getElementById("chooseYaml");
+    const instruction = document.getElementById("instruction");
+    const viewer = document.getElementById("viewer");
+    let buildings = {};
+    let cachedYamlText = null;
+    let cachedIndexText = null;
+    const AUTO_RELOAD_INTERVAL_MS = 2000;
+
+    function populateBuildingSelector(data) {
+        buildingSelector.innerHTML = "";
+        buildings = data;
+
+        Object.keys(buildings).forEach(key => {
+            const building = buildings[key];
+            const option = document.createElement("option");
+            option.value = key;
+            option.textContent = building.label || key;
+            buildingSelector.appendChild(option);
+        });
+
+        if (buildingSelector.options.length > 0) {
+            buildingSelector.dispatchEvent(new Event("change"));
+        }
+    }
+
+    function populateFloorSelector(floors) {
+        floorSelector.innerHTML = "";
+
+        floors.forEach((floor, index) => {
+            const option = document.createElement("option");
+            option.value = floor.image || "";
+            option.textContent = floor.name || `Floor ${floor.level || index + 1}`;
+            floorSelector.appendChild(option);
+        });
+
+        if (floorSelector.options.length > 0) {
+            floorSelector.dispatchEvent(new Event("change"));
+        } else {
+            viewer.src = "";
+            viewer.alt = "No floor map available.";
+        }
+    }
+
+    function updateViewer() {
+        const imageUrl = floorSelector.value;
+        viewer.src = imageUrl;
+        viewer.alt = imageUrl ? "Floor map" : "No floor map available.";
+    }
+
+    buildingSelector.addEventListener("change", () => {
+        const selectedKey = buildingSelector.value;
+        const building = buildings[selectedKey];
+        if (!building || !Array.isArray(building.floors)) {
+            floorSelector.innerHTML = "";
+            viewer.src = "";
+            instruction.textContent = "Selected building has no floors defined.";
+            return;
+        }
+        instruction.textContent = "";
+        populateFloorSelector(building.floors);
+    });
+
+    floorSelector.addEventListener("change", updateViewer);
+
+    function selectOption(selector, index) {
+        if (!selector || selector.options.length === 0) return;
+        if (index < 0) index = 0;
+        if (index >= selector.options.length) index = selector.options.length - 1;
+        selector.selectedIndex = index;
+        selector.dispatchEvent(new Event("change"));
+    }
+
+    document.addEventListener("keydown", event => {
+        if (event.altKey || event.ctrlKey || event.metaKey) return;
+        const activeTag = document.activeElement?.tagName?.toLowerCase();
+        if (activeTag === "input" || activeTag === "textarea" || activeTag === "select") return;
+
+        if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+            const current = buildingSelector.selectedIndex;
+            const next = event.key === "ArrowRight" ? current + 1 : current - 1;
+            selectOption(buildingSelector, next);
+            event.preventDefault();
+        }
+
+        if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+            const current = floorSelector.selectedIndex;
+            const next = event.key === "ArrowUp" ? current + 1 : current - 1;
+            selectOption(floorSelector, next);
+            event.preventDefault();
+        }
+    });
+
+    async function fetchNoCache(path) {
+        const response = await fetch(`${path}?_=${Date.now()}`, { cache: "no-store" });
+        if (!response.ok) {
+            throw new Error(`Unable to fetch ${path}`);
+        }
+        return response.text();
+    }
+
+    async function loadYamlText(yamlText, updateCache = true) {
+        const data = jsyaml.load(yamlText);
+        const parsedBuildings = data.buildings || {};
+        if (updateCache) {
+            cachedYamlText = yamlText;
+        }
+        populateBuildingSelector(parsedBuildings);
+    }
+
+    async function cacheCurrentIndexHtml() {
+        try {
+            cachedIndexText = await fetchNoCache("index.html");
+        } catch (error) {
+            cachedIndexText = null;
+        }
+    }
+
+    async function checkForUpdates() {
+        try {
+            const [latestYamlText, latestIndexText] = await Promise.all([
+                fetchNoCache("pages.yaml"),
+                fetchNoCache("index.html")
+            ]);
+
+            if (cachedYamlText !== null && latestYamlText !== cachedYamlText) {
+                console.log("pages.yaml changed, reloading page.");
+                location.reload();
+                return;
+            }
+
+            if (cachedIndexText !== null && latestIndexText !== cachedIndexText) {
+                console.log("index.html changed, reloading page.");
+                location.reload();
+            }
+        } catch (error) {
+            // Ignore polling errors when the app is used over file:// or the server is temporarily unavailable.
+        }
+    }
+
+    async function tryFetchYaml() {
+        try {
+            const response = await fetch("pages.yaml");
+            if (!response.ok) throw new Error("Network response was not ok");
+            const yamlText = await response.text();
+            await loadYamlText(yamlText);
+            instruction.textContent = "pages.yaml loaded automatically from the same folder.";
+            chooseYamlButton.style.display = "none";
+            await cacheCurrentIndexHtml();
+            setInterval(checkForUpdates, AUTO_RELOAD_INTERVAL_MS);
+        } catch (error) {
+            instruction.textContent = "Automatic load failed in file:// mode. Click the button and choose pages.yaml manually.";
+            chooseYamlButton.style.display = "inline-block";
+        }
+    }
+
+    async function loadYamlFromFile(file) {
+        const yamlText = await file.text();
+        await loadYamlText(yamlText, false);
+        instruction.textContent = `Loaded ${file.name} from your local filesystem.`;
+    }
+
+    chooseYamlButton.addEventListener("click", () => yamlFileInput.click());
+    yamlFileInput.addEventListener("change", event => {
+        const file = event.target.files[0];
+        if (file) {
+            loadYamlFromFile(file);
+        }
+    });
+
+    tryFetchYaml();
+</script>
+
+</body>
+</html>

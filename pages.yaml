@@ -1,0 +1,22 @@
+buildings:
+  buildingA:
+    label: Building A
+    floors:
+      - name: Ground Floor
+        level: 0
+        image: https://randylawrencehomes.com/wp-content/uploads/2015/01/Design-3257-floorplan.jpg
+      - name: First Floor
+        level: 1
+        image: https://randylawrencehomes.com/wp-content/uploads/2015/01/Design-2970-floorplan.jpg
+  buildingB:
+    label: Building B
+    floors:
+      - name: Front view
+        level: 0
+        image: https://permit-ready-house-plans.com/wp-content/uploads/2016/05/P56-5626-Elevation-1024x791.jpg
+      - name: first floor
+        level: 1
+        image: https://permit-ready-house-plans.com/wp-content/uploads/2016/05/P56-5626-Floor-Plan-1-1024x791.jpg
+      - name: Second Floor
+        level: 2
+        image: https://permit-ready-house-plans.com/wp-content/uploads/2016/05/P56-5626-Floor-Plan-2-1024x791.jpg
