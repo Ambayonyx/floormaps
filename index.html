@@ -138,6 +138,7 @@
             justify-content: center;
             align-items: center;
             overflow: hidden;
+            touch-action: none;
             padding: 20px;
             flex: 1 1 auto;
         }
@@ -357,6 +358,73 @@
             event.preventDefault();
         }
     });
+
+    // Touch / swipe support for mobile: map swipes to the same actions as arrow keys.
+    (function() {
+        const SWIPE_THRESHOLD_PX = 40; // minimum distance for a swipe
+        let startX = 0, startY = 0, isTouch = false;
+        const target = document.getElementById("viewerWrapper") || document;
+
+        function onTouchStart(e) {
+            isTouch = true;
+            const t = e.touches ? e.touches[0] : e;
+            startX = t.clientX;
+            startY = t.clientY;
+        }
+
+        function onTouchEnd(e) {
+            if (!isTouch) return;
+            const t = (e.changedTouches && e.changedTouches[0]) || e;
+            const dx = t.clientX - startX;
+            const dy = t.clientY - startY;
+
+            // Ignore tiny movements
+            if (Math.abs(dx) < SWIPE_THRESHOLD_PX && Math.abs(dy) < SWIPE_THRESHOLD_PX) return;
+
+            // Horizontal swipe (buildings)
+            if (Math.abs(dx) > Math.abs(dy)) {
+                if (dx < 0) {
+                    // swipe left -> next building
+                    selectOption(buildingSelector, buildingSelector.selectedIndex + 1);
+                } else {
+                    // swipe right -> previous building
+                    selectOption(buildingSelector, buildingSelector.selectedIndex - 1);
+                }
+            } else {
+                // Vertical swipe (floors)
+                if (dy > 0) {
+                    // swipe down -> go a floor up (increase index)
+                    selectOption(floorSelector, floorSelector.selectedIndex + 1);
+                } else {
+                    // swipe up -> go a floor down (decrease index)
+                    selectOption(floorSelector, floorSelector.selectedIndex - 1);
+                }
+            }
+
+            isTouch = false;
+        }
+
+        // Prefer Pointer Events when available, otherwise fall back to touch events
+        if (window.PointerEvent) {
+            target.addEventListener('pointerdown', e => {
+                if (e.pointerType === 'touch') onTouchStart(e);
+            }, { passive: true });
+            target.addEventListener('pointerup', e => {
+                if (e.pointerType === 'touch') onTouchEnd(e);
+            }, { passive: true });
+            // Prevent default pointermove to stop page scroll while swiping
+            target.addEventListener('pointermove', e => {
+                if (e.pointerType === 'touch' && isTouch) e.preventDefault();
+            }, { passive: false });
+        } else {
+            target.addEventListener('touchstart', onTouchStart, { passive: true });
+            target.addEventListener('touchend', onTouchEnd, { passive: true });
+            // Prevent default touchmove to stop page scroll / pull-to-refresh
+            target.addEventListener('touchmove', e => {
+                if (isTouch) e.preventDefault();
+            }, { passive: false });
+        }
+    })();
 
     async function fetchNoCache(path) {
         const response = await fetch(`${path}?_=${Date.now()}`, { cache: "no-store" });
