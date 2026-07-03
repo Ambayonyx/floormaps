@@ -62,6 +62,14 @@
             margin-bottom: 12px;
         }
 
+        #pageTitle {
+            font-size: 1.7rem;
+            font-weight: 700;
+            color: #33275a;
+            margin-bottom: 12px;
+            line-height: 1.1;
+        }
+
         #topHeader {
             display: flex;
             justify-content: flex-start;
@@ -179,12 +187,12 @@
 </head>
 <body>
 
-<div id="buttonRow">
-    <button id="chooseYaml">Load pages.yaml</button>
-    <input id="yamlFile" type="file" accept=".yaml,.yml" style="display:none">
-</div>
+<div id="pageTitle">YAML Page Viewer</div>
 
 <div id="topHeader">
+    <button id="chooseYaml">Load pages.yaml</button>
+    <input id="yamlFile" type="file" accept=".yaml,.yml" style="display:none">
+
     <div class="selector-panel">
         <select id="buildingSelector"></select>
     </div>
@@ -203,6 +211,7 @@
 <script>
     const buildingSelector = document.getElementById("buildingSelector");
     const floorSelector = document.getElementById("floorSelector");
+    const pageTitle = document.getElementById("pageTitle");
     const yamlFileInput = document.getElementById("yamlFile");
     const chooseYamlButton = document.getElementById("chooseYaml");
     const instruction = document.getElementById("instruction");
@@ -307,6 +316,9 @@
     async function loadYamlText(yamlText, updateCache = true) {
         const data = jsyaml.load(yamlText);
         const parsedBuildings = data.buildings || {};
+        const titleText = data.title || "YAML Page Viewer";
+        pageTitle.textContent = titleText;
+        document.title = titleText;
         if (updateCache) {
             cachedYamlText = yamlText;
         }
@@ -355,7 +367,7 @@
             setInterval(checkForUpdates, AUTO_RELOAD_INTERVAL_MS);
         } catch (error) {
             instruction.textContent = "Automatic load failed in file:// mode. Click the button and choose pages.yaml manually.";
-            chooseYamlButton.style.display = "inline-block";
+            chooseYamlButton.style.display = "inline-flex";
         }
     }
 
