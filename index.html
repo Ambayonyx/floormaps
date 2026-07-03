@@ -510,29 +510,56 @@
 
     tryFetchYaml();
 
-    // Click-to-zoom: each tap scales the image by a fixed factor, keeping the tapped point stationary on screen.
+    // Tap / double-tap to zoom: single tap multiplies scale; double-tap divides scale until 1.
     (function() {
         let scale = 1;
         const ZOOM_FACTOR = 2;
+        const TAP_MAX_DELAY = 300; // ms to detect double-tap
+        let lastTap = 0;
+        let tapTimer = null;
 
-        viewer.addEventListener('click', (e) => {
-            // Ignore clicks on controls
+        function doZoom(newScale, clientX, clientY) {
+            const rect = viewer.getBoundingClientRect();
+            const clickX = clientX - rect.left;
+            const clickY = clientY - rect.top;
+            const originX = (clickX / rect.width) * 100;
+            const originY = (clickY / rect.height) * 100;
+            viewer.style.transformOrigin = `${originX}% ${originY}%`;
+            scale = newScale;
+            viewer.style.transform = `scale(${scale})`;
+        }
+
+        viewer.addEventListener('pointerup', (e) => {
+            // ignore non-primary buttons
+            if (e.button && e.button !== 0) return;
             const activeTag = document.activeElement?.tagName?.toLowerCase();
             if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select' || !viewer.src) return;
 
-            const rect = viewer.getBoundingClientRect();
-            // Click position relative to image box
-            const clickX = e.clientX - rect.left;
-            const clickY = e.clientY - rect.top;
+            const now = Date.now();
+            const isDouble = (now - lastTap) <= TAP_MAX_DELAY;
+            const clientX = e.clientX;
+            const clientY = e.clientY;
 
-            // Compute transform-origin as percentage so the clicked point stays put when scaling
-            const originX = (clickX / rect.width) * 100;
-            const originY = (clickY / rect.height) * 100;
-
-            scale = Math.max(0.01, scale * ZOOM_FACTOR);
-            viewer.style.transformOrigin = `${originX}% ${originY}%`;
-            viewer.style.transform = `scale(${scale})`;
-        });
+            if (isDouble) {
+                // double-tap: cancel pending single-tap action, zoom out by factor
+                if (tapTimer) {
+                    clearTimeout(tapTimer);
+                    tapTimer = null;
+                }
+                const newScale = Math.max(1, scale / ZOOM_FACTOR);
+                doZoom(newScale, clientX, clientY);
+                lastTap = 0;
+            } else {
+                // schedule single-tap action after delay to allow double-tap detection
+                lastTap = now;
+                tapTimer = setTimeout(() => {
+                    const newScale = Math.max(0.01, scale * ZOOM_FACTOR);
+                    doZoom(newScale, clientX, clientY);
+                    tapTimer = null;
+                    lastTap = 0;
+                }, TAP_MAX_DELAY + 10);
+            }
+        }, { passive: true });
     })();
 </script>
 
