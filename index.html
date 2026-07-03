@@ -151,6 +151,8 @@
             border-radius: 20px;
             background: #ffffff;
             box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+            transition: transform 180ms ease;
+            will-change: transform;
         }
 
         #instruction {
@@ -507,6 +509,31 @@
     });
 
     tryFetchYaml();
+
+    // Click-to-zoom: each tap scales the image by a fixed factor, keeping the tapped point stationary on screen.
+    (function() {
+        let scale = 1;
+        const ZOOM_FACTOR = 2;
+
+        viewer.addEventListener('click', (e) => {
+            // Ignore clicks on controls
+            const activeTag = document.activeElement?.tagName?.toLowerCase();
+            if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select' || !viewer.src) return;
+
+            const rect = viewer.getBoundingClientRect();
+            // Click position relative to image box
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            // Compute transform-origin as percentage so the clicked point stays put when scaling
+            const originX = (clickX / rect.width) * 100;
+            const originY = (clickY / rect.height) * 100;
+
+            scale = Math.max(0.01, scale * ZOOM_FACTOR);
+            viewer.style.transformOrigin = `${originX}% ${originY}%`;
+            viewer.style.transform = `scale(${scale})`;
+        });
+    })();
 </script>
 
 </body>
