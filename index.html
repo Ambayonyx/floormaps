@@ -161,6 +161,14 @@
             border-radius: 18px;
             padding: 14px 18px;
             box-shadow: inset 0 1px 2px rgba(0,0,0,0.04);
+            min-height: 44px;
+            max-height: 220px;
+            overflow-y: auto;
+            transition: min-height 0.2s ease, max-height 0.2s ease;
+        }
+
+        #instruction.expanded {
+            min-height: 180px;
         }
 
         code {
@@ -262,6 +270,51 @@
         viewer.alt = imageUrl ? "Floor map" : "No floor map available.";
     }
 
+    function setInstructionMessage(html, expanded = false) {
+        instruction.innerHTML = html;
+        instruction.classList.toggle("expanded", expanded);
+    }
+
+    function getImageUrlsFromBuildings(buildingsData) {
+        const urls = [];
+        Object.values(buildingsData).forEach(building => {
+            if (!building || !Array.isArray(building.floors)) return;
+            building.floors.forEach(floor => {
+                if (floor && floor.image) {
+                    urls.push(floor.image);
+                }
+            });
+        });
+        return [...new Set(urls)];
+    }
+
+    async function checkImageUrls(urls) {
+        const results = await Promise.all(urls.map(url => new Promise(resolve => {
+            const probe = new Image();
+            probe.onload = () => resolve({ url, ok: true });
+            probe.onerror = () => resolve({ url, ok: false });
+            probe.src = url;
+        })));
+        return results.filter(result => !result.ok).map(result => result.url);
+    }
+
+    async function checkAllYamlImages(buildingsData) {
+        const urls = getImageUrlsFromBuildings(buildingsData);
+        if (urls.length === 0) {
+            setInstructionMessage("No floor images were found in the YAML file.");
+            return;
+        }
+
+        setInstructionMessage("Checking availability for all images in the YAML file...");
+        const failedUrls = await checkImageUrls(urls);
+        if (failedUrls.length === 0) {
+            setInstructionMessage("All images are available.");
+        } else {
+            const listItems = failedUrls.map(url => `<li>${url}</li>`).join("");
+            setInstructionMessage(`Some images could not be loaded:<br><ul>${listItems}</ul>`, true);
+        }
+    }
+
     buildingSelector.addEventListener("change", () => {
         const selectedKey = buildingSelector.value;
         const building = buildings[selectedKey];
@@ -323,6 +376,7 @@
             cachedYamlText = yamlText;
         }
         populateBuildingSelector(parsedBuildings);
+        await checkAllYamlImages(parsedBuildings);
     }
 
     async function cacheCurrentIndexHtml() {
@@ -361,7 +415,6 @@
             if (!response.ok) throw new Error("Network response was not ok");
             const yamlText = await response.text();
             await loadYamlText(yamlText);
-            instruction.textContent = "pages.yaml loaded automatically from the same folder.";
             chooseYamlButton.style.display = "none";
             await cacheCurrentIndexHtml();
             setInterval(checkForUpdates, AUTO_RELOAD_INTERVAL_MS);
