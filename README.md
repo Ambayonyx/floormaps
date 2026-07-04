@@ -17,6 +17,7 @@ A simple browser-based floorplan viewer powered by a YAML configuration file.
 
 1. Open `index.html` in your browser.
 2. Click **Load floorplan.yaml**.
+  - Or open `index.html?file=floorplan.yaml` to auto-load that file from the same folder.
 3. Select the `floorplan.yaml` file from this directory.
 4. Choose a building and floor from the selectors.
 
@@ -74,3 +75,10 @@ buildings:
 - Images can be local paths or remote URLs.
 - The viewer uses `js-yaml` to parse YAML in the browser.
 - The app will report missing or unreachable floorplan images.
+ - You can specify the YAML filename via the `file` query parameter. Example:
+
+```
+index.html?file=floorplan.yaml
+```
+
+  When present, the viewer will attempt to fetch and load the named YAML file automatically.

@@ -10,6 +10,17 @@ let cachedYamlText = null;
 let cachedIndexText = null;
 const AUTO_RELOAD_INTERVAL_MS = 2000;
 
+// Determine YAML filename from URL query parameter `file`, defaulting to `floorplan.yaml`.
+const YAML_FILENAME = (() => {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        const f = params.get('file');
+        return (f && f.trim()) ? f.trim() : 'floorplan.yaml';
+    } catch (e) {
+        return 'floorplan.yaml';
+    }
+})();
+
 // Viewer zoom state helpers (shared between tap and swipe handlers)
 let viewerScale = 1;
 function applyViewerScale(newScale, originXPercent = 50, originYPercent = 50) {
@@ -268,7 +279,7 @@ async function cacheCurrentIndexHtml() {
 async function checkForUpdates() {
     try {
         const [latestYamlText, latestIndexText] = await Promise.all([
-            fetchNoCache("floorplan.yaml"),
+            fetchNoCache(YAML_FILENAME),
             fetchNoCache("index.html")
         ]);
 
@@ -289,7 +300,7 @@ async function checkForUpdates() {
 
 async function tryFetchYaml() {
     try {
-        const response = await fetch("floorplan.yaml");
+        const response = await fetch(YAML_FILENAME);
         if (!response.ok) throw new Error("Network response was not ok");
         const yamlText = await response.text();
         await loadYamlText(yamlText);
@@ -297,7 +308,7 @@ async function tryFetchYaml() {
         await cacheCurrentIndexHtml();
         setInterval(checkForUpdates, AUTO_RELOAD_INTERVAL_MS);
     } catch (error) {
-        instruction.textContent = "Automatic load failed in file:// mode. Click the button and choose floorplan.yaml manually.";
+        instruction.textContent = `Automatic load failed in file:// mode. Click the button and choose ${YAML_FILENAME} manually.`;
         chooseYamlButton.style.display = "inline-flex";
     }
 }
